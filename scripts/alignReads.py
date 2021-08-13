@@ -18,7 +18,6 @@ def getOriginalReadsCmdStringForStar(options, Run, ended, condition):
     run_files_filt = [f for f in run_files if re.search(valid_exts, f)]
 
     read1_files = [f for f in run_files_filt if re.search(Run + '([-_](1|R1))?' + valid_exts, f, flags = re.IGNORECASE)]
-    print(f"DEBUG: read1_files: {read1_files}")
    
     if len(read1_files) == 0:
         sys.exit("Error: Couldn't locate read files for " + ended + " run " + run_files_prefix)
@@ -41,8 +40,6 @@ def getOriginalReadsCmdStringForStar(options, Run, ended, condition):
             sys.exit("Error: Redundant read files found for " + ended + " run " + run_files_prefix)
         cmd += " --readFilesIn " + read1_files[0] + " " + read2_files[0]
     
-    print(f"DEBUG: STAR reads Cmd string: {cmd}")
-
     return cmd
 
 
