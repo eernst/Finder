@@ -24,6 +24,7 @@ def parseCommandLineArguments():
     parser.add_argument("--sra","-s",help="Please enter the name of the file which has all the SRA ids listed one per line. Please note the bioproject IDS cannot be processed",required=True)
     parser.add_argument("--output","-o",help="Please enter the name of the output directory. Download will be skipped if file is present",required=True)
     parser.add_argument("--cpu","-n",help="Enter the number of CPUs to be used.",default=1)
+    parser.add_argument("--gzip","-z",dest="gzip",action='store_true',help="Enable gzipped results.",default=False)
     return parser.parse_args()
 
 def readSRAfilesToBeDownloaded(filename):
@@ -33,7 +34,7 @@ def readSRAfilesToBeDownloaded(filename):
     return list(set([name.strip() for name in open(filename,"r").read().split("\n")]))
 
 def downloadSRAFile(allinput):
-    sra,default_path_to_download,output_directory=allinput
+    sra,default_path_to_download,output_directory,gzip=allinput
     os.system("prefetch -X 104857600 -O "+output_directory+"/"+" "+sra+" 2> "+output_directory+"/"+sra+".error")
     cmd="fastq-dump -X 1 -Z  --split-spot "+output_directory+"/"+sra+".sra|wc -l > "+output_directory+"/"+sra+".temp"
     os.system(cmd)
@@ -41,13 +42,19 @@ def downloadSRAFile(allinput):
         pair="single"
     else:
         pair="paired"
-    cmd="fastq-dump --gzip --defline-seq '@$sn[_$rn]/$ri' --outdir "+output_directory+" --split-files "+output_directory+"/"+sra+".sra"
+    cmd="fastq-dump"
+    if gzip:
+        cmd += " --gzip"
+    cmd+=" --defline-seq '@$sn[_$rn]/$ri'"
+    cmd+=" --outdir "+output_directory
+    cmd+=" --split-files"
+    cmd+=" " + output_directory+"/"+sra+".sra"
     os.system(cmd)
     if pair=="single":
-        os.system("mv "+output_directory+"/"+sra+"_1.fastq.gz "+output_directory+"/"+sra+".fastq.gz ")
+        os.system("mv "+output_directory+"/"+sra+"_1"+getExt(gzip)+" "+output_directory+"/"+sra+getExt(gzip)+" ")
     os.system("rm "+output_directory+"/"+sra+".sra "+output_directory+"/"+sra+".temp")
     
-def downloadSRAFilesAndConvertToFastq(SRAs,default_path_to_download,n,output_directory):
+def downloadSRAFilesAndConvertToFastq(SRAs,default_path_to_download,n,output_directory,gzip):
     """
     Downloads the sra files and converts to fastq
     """
@@ -60,26 +67,33 @@ def downloadSRAFilesAndConvertToFastq(SRAs,default_path_to_download,n,output_dir
     os.system("rm -rf "+output_directory+"/*error")
     os.system("rm -rf "+output_directory+"/*temp")
     for sra in SRAs:
-        if os.path.exists(output_directory+"/"+sra+".fastq.gz")==True or (os.path.exists(output_directory+"/"+sra+"_1.fastq.gz")==True and os.path.exists(output_directory+"/"+sra+"_2.fastq.gz")==True):
-            if os.path.exists(output_directory+"/"+sra+"_1.fastq.gz")==True and os.path.exists(output_directory+"/"+sra+"_2.fastq.gz")==False:
-                os.system("mv "+output_directory+"/"+sra+"_1.fastq.gz "+output_directory+"/"+sra+".fastq.gz")
+        if (os.path.exists(output_directory+"/"+sra+getExt(gzip))==True 
+                or (os.path.exists(output_directory+"/"+sra+"_1"+getExt(gzip))==True 
+                    and os.path.exists(output_directory+"/"+sra+"_2"+getExt(gzip))==True)):
+            if (os.path.exists(output_directory+"/"+sra+"_1"+getExt(gzip))==True 
+                    and os.path.exists(output_directory+"/"+sra+"_2"+getExt(gzip))==False):
+                os.system("mv "+output_directory+"/"+sra+"_1"+getExt(gzip)+" "+output_directory+"/"+sra+getExt(gzip))
             continue
-        allinputs.append([sra,default_path_to_download,output_directory])
+        allinputs.append([sra,default_path_to_download,output_directory,gzip])
     pool.map(downloadSRAFile,allinputs)
     
-def verifyOutput(output_directory,SRAs):
+def verifyOutput(output_directory,SRAs,gzip):
     """
     Verify the downloads
     """
     for sra in SRAs:
-        if os.path.exists(output_directory+"/"+sra+".fastq.gz")==True:
+        if os.path.exists(output_directory+"/"+sra+getExt(gzip))==True:
             continue
-        elif os.path.exists(output_directory+"/"+sra+"_1.fastq.gz")==True and os.path.exists(output_directory+"/"+sra+"_2.fastq.gz")==True:
+        elif (os.path.exists(output_directory+"/"+sra+"_1"+getExt(gzip))==True 
+                and os.path.exists(output_directory+"/"+sra+"_2"+getExt(gzip))==True):
             continue
         else:
             return 1
         return 0
-          
+    
+def getExt(gzip):
+    return ".fastq.gz" if gzip else ".fastq"
+
 def main():
     commandLineArg=sys.argv
     if len(commandLineArg)==1:
@@ -89,8 +103,8 @@ def main():
     new_SRAs=[s for s in SRAs if s!=""]
     SRAs=new_SRAs
     default_path_to_download=""
-    while verifyOutput(options.output,SRAs)==1:
-        downloadSRAFilesAndConvertToFastq(SRAs,default_path_to_download,int(options.cpu),options.output)
+    while verifyOutput(options.output,SRAs,options.gzip)==1:
+        downloadSRAFilesAndConvertToFastq(SRAs,default_path_to_download,int(options.cpu),options.output,options.gzip)
     
 
 if __name__ == "__main__":

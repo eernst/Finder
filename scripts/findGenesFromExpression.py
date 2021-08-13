@@ -298,6 +298,7 @@ def alignReadsAndMergeOutput(options,logger_proxy,logging_mutex):
             cmd+=" -s "+options.temp_dir+"/download_these_runs "
             cmd+=" -o "+options.raw_data_downloaded_from_NCBI
             cmd+=" -n "+str(options.cpu)
+            cmd+=" --gzip"
             cmd+=" > "+options.temp_dir+"/download_these_runs.output "
             cmd+=" 2> "+options.temp_dir+"/download_these_runs.error "
             
