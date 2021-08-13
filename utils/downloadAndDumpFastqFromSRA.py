@@ -41,10 +41,10 @@ def downloadSRAFile(allinput):
         pair="single"
     else:
         pair="paired"
-    cmd="fastq-dump --defline-seq '@$sn[_$rn]/$ri' --outdir "+output_directory+" --split-files "+output_directory+"/"+sra+".sra"
+    cmd="fastq-dump --gzip --defline-seq '@$sn[_$rn]/$ri' --outdir "+output_directory+" --split-files "+output_directory+"/"+sra+".sra"
     os.system(cmd)
     if pair=="single":
-        os.system("mv "+output_directory+"/"+sra+"_1.fastq "+output_directory+"/"+sra+".fastq ")
+        os.system("mv "+output_directory+"/"+sra+"_1.fastq.gz "+output_directory+"/"+sra+".fastq.gz ")
     os.system("rm "+output_directory+"/"+sra+".sra "+output_directory+"/"+sra+".temp")
     
 def downloadSRAFilesAndConvertToFastq(SRAs,default_path_to_download,n,output_directory):
@@ -60,9 +60,9 @@ def downloadSRAFilesAndConvertToFastq(SRAs,default_path_to_download,n,output_dir
     os.system("rm -rf "+output_directory+"/*error")
     os.system("rm -rf "+output_directory+"/*temp")
     for sra in SRAs:
-        if os.path.exists(output_directory+"/"+sra+".fastq")==True or (os.path.exists(output_directory+"/"+sra+"_1.fastq")==True and os.path.exists(output_directory+"/"+sra+"_2.fastq")==True):
-            if os.path.exists(output_directory+"/"+sra+"_1.fastq")==True and os.path.exists(output_directory+"/"+sra+"_2.fastq")==False:
-                os.system("mv "+output_directory+"/"+sra+"_1.fastq "+output_directory+"/"+sra+".fastq")
+        if os.path.exists(output_directory+"/"+sra+".fastq.gz")==True or (os.path.exists(output_directory+"/"+sra+"_1.fastq.gz")==True and os.path.exists(output_directory+"/"+sra+"_2.fastq.gz")==True):
+            if os.path.exists(output_directory+"/"+sra+"_1.fastq.gz")==True and os.path.exists(output_directory+"/"+sra+"_2.fastq.gz")==False:
+                os.system("mv "+output_directory+"/"+sra+"_1.fastq.gz "+output_directory+"/"+sra+".fastq.gz")
             continue
         allinputs.append([sra,default_path_to_download,output_directory])
     pool.map(downloadSRAFile,allinputs)
@@ -72,9 +72,9 @@ def verifyOutput(output_directory,SRAs):
     Verify the downloads
     """
     for sra in SRAs:
-        if os.path.exists(output_directory+"/"+sra+".fastq")==True:
+        if os.path.exists(output_directory+"/"+sra+".fastq.gz")==True:
             continue
-        elif os.path.exists(output_directory+"/"+sra+"_1.fastq")==True and os.path.exists(output_directory+"/"+sra+"_2.fastq")==True:
+        elif os.path.exists(output_directory+"/"+sra+"_1.fastq.gz")==True and os.path.exists(output_directory+"/"+sra+"_2.fastq.gz")==True:
             continue
         else:
             return 1

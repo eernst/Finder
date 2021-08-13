@@ -623,9 +623,9 @@ def main():
     with logging_mutex:
         logger_proxy.info("readMetaDataFile execution successful")
         
-    expandGzippedFiles(options,logger_proxy,logging_mutex)
-    with logging_mutex:
-        logger_proxy.info("expandGzippedFiles execution successful")
+    #expandGzippedFiles(options,logger_proxy,logging_mutex)
+    #with logging_mutex:
+    #    logger_proxy.info("expandGzippedFiles execution successful")
     
     #pprint.pprint(options.mrna_md)
     #sys.exit()

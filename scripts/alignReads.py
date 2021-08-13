@@ -4,6 +4,47 @@ from scripts.fileReadWriteOperations import *
 from scripts.runCommand import *
 import os
 import sys
+import glob
+import re
+
+
+def getOriginalReadsCmdStringForStar(options, Run, ended, condition):
+    
+    cmd = ""
+    valid_exts = '(\.fastq|\.fq)(\.gz|\.bz2)?'
+    
+    run_files_prefix = options.mrna_md[condition][Run]["location_directory"] + "/" + Run
+    run_files = glob.glob(run_files_prefix + "*")
+    run_files_filt = [f for f in run_files if re.search(valid_exts, f)]
+
+    read1_files = [f for f in run_files_filt if re.search(Run + '([-_](1|R1))?' + valid_exts, f, flags = re.IGNORECASE)]
+    print(f"DEBUG: read1_files: {read1_files}")
+   
+    if len(read1_files) == 0:
+        sys.exit("Error: Couldn't locate read files for " + ended + " run " + run_files_prefix)
+    elif len(read1_files) > 1:
+        sys.exit("Error: Redundant read files found for " + ended + " run " + run_files_prefix)
+
+    ext = os.path.splitext(read1_files[0])
+    if ext[1] == ".gz":
+        cmd+=" --readFilesCommand 'gunzip -c'"
+    elif ext[1] == ".bz2":
+        cmd+=" --readFilesCommand 'bunzip -c'"
+    
+    if ended == "SE":
+        cmd += " --readFilesIn " + read1_files[0]
+    elif ended == "PE":
+        read2_files = [f for f in run_files_filt if re.search(Run + '[-_](2|R2)' + valid_exts, f, re.IGNORECASE)]
+        if len(read2_files) == 0:
+            sys.exit("Error: Couldn't locate read 2 file for " + ended + " run " + run_files_prefix)
+        elif len(read2_files) > 1:
+            sys.exit("Error: Redundant read files found for " + ended + " run " + run_files_prefix)
+        cmd += " --readFilesIn " + read1_files[0] + " " + read2_files[0]
+    
+    print(f"DEBUG: STAR reads Cmd string: {cmd}")
+
+    return cmd
+
 
 def alignReadsWithSTARRound1(options,Run,ended,condition,logger_proxy,logging_mutex):
     if (os.path.exists(options.output_star+"/"+Run+"_round1_Aligned.sortedByCoord.out.bam")==True and samtoolsQuickCheck(options.output_star+"/"+Run+"_round1_Aligned.sortedByCoord.out.bam",options)==0) or os.path.exists(options.output_star+"/"+Run+"_final.sortedByCoord.out.bam")==True:return
@@ -28,14 +69,9 @@ def alignReadsWithSTARRound1(options,Run,ended,condition,logger_proxy,logging_mu
     cmd+=" --outFileNamePrefix "+options.output_star+"/"+Run+"_round1_"
     cmd+=" --outSJfilterCountUniqueMin 1 1 1 1 "
     cmd+=" --outSJfilterCountTotalMin 1 1 1 1 "
-    cmd+=" --alignSJoverhangMin 12 " # For round 1 a high overhang ensures reads mapping with high confidence    
+    cmd+=" --alignSJoverhangMin 12 " # For round 1 a high overhang ensures reads mapping with high confidence
     cmd+=" --outSAMattrRGline ID:1 "
-    
-    if ended=="SE":
-        cmd+=" --readFilesIn "+options.mrna_md[condition][Run]["location_directory"]+"/"+Run+".fastq"
-    else:
-        cmd+=" --readFilesIn "+options.mrna_md[condition][Run]["location_directory"]+"/"+Run+"_1.fastq "
-        cmd+=" "+options.mrna_md[condition][Run]["location_directory"]+"/"+Run+"_2.fastq "
+    cmd+=getOriginalReadsCmdStringForStar(options,Run,ended,condition)
     cmd+=" > "+options.output_star+"/"+Run+"_round1.output"
     cmd+=" 2> "+options.output_star+"/"+Run+"_round1.error"
     os.system(cmd)
@@ -96,12 +132,7 @@ def alignReadsWithSTARRelaxed(options,Run,ended,condition,logger_proxy,logging_m
     cmd+=" --outSJfilterCountUniqueMin 1 1 1 1 " 
     cmd+=" --outSJfilterCountTotalMin 1 1 1 1 " 
     cmd+=" --alignSJoverhangMin 8 "
-    
-    if ended=="SE":
-        cmd+=" --readFilesIn "+options.mrna_md[condition][Run]["location_directory"]+"/"+Run+".fastq"
-    else:
-        cmd+=" --readFilesIn "+options.mrna_md[condition][Run]["location_directory"]+"/"+Run+"_1.fastq "
-        cmd+=" "+options.mrna_md[condition][Run]["location_directory"]+"/"+Run+"_2.fastq "
+    cmd+=getOriginalReadsCmdStringForStar(options,Run,ended,condition)
     cmd+=" > "+options.output_star+"/"+Run+"_relaxed.output"
     cmd+=" 2> "+options.output_star+"/"+Run+"_relaxed.error"
     #print(cmd)

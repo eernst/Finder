@@ -232,15 +232,15 @@ def selectReadsAtRandom(sraids_filenames,location_directory,options,condition,lo
         with logging_mutex:
             logger_proxy.info(f"Randomly selecting {proportion_of_reads_to_be_selected} reads from {Run}")
         if options.mrna_md[condition][Run]["Ended"]=="SE":
-            input_filename1 = location_directory+"/"+Run+".fastq"
-            output_filename1 = location_directory+"/"+Run+".fastq.reduced"
+            input_filename1 = location_directory+"/"+Run+".fastq.gz"
+            output_filename1 = location_directory+"/"+Run+".fastq.gz.reduced"
             performRandomSelectionOfReads(proportion_of_reads_to_be_selected,input_filename1,output_filename1)
             os.system(f"mv {output_filename1} {input_filename1}")
         elif options.mrna_md[condition][Run]["Ended"]=="PE":
-            input_filename1 = location_directory+"/"+Run+"_1.fastq"
-            output_filename1 = location_directory+"/"+Run+"_1.fastq.reduced"
-            input_filename2 = location_directory+"/"+Run+"_2.fastq"
-            output_filename2 = location_directory+"/"+Run+"_2.fastq.reduced"
+            input_filename1 = location_directory+"/"+Run+"_1.fastq.gz"
+            output_filename1 = location_directory+"/"+Run+"_1.fastq.gz.reduced"
+            input_filename2 = location_directory+"/"+Run+"_2.fastq.gz"
+            output_filename2 = location_directory+"/"+Run+"_2.fastq.gz.reduced"
             performRandomSelectionOfReads(proportion_of_reads_to_be_selected,input_filename1,output_filename1,input_filename2,output_filename2)
             os.system(f"mv {output_filename1} {input_filename1}")
             os.system(f"mv {output_filename2} {input_filename2}")
@@ -262,18 +262,29 @@ def alignReadsAndMergeOutput(options,logger_proxy,logging_mutex):
         fhw=open(options.temp_dir+"/download_these_runs","w")
         download_these=[]
         for Run in options.mrna_md[condition]:
-            if os.path.exists(options.output_star+"/"+Run+"_final.sortedByCoord.out.bam")==True and os.path.exists(options.output_star+"/"+Run+"_round4_Aligned.sortedByCoord.out.bam")==True:continue
-            if options.mrna_md[condition][Run]["downloaded_from_NCBI"]==0:continue
+            if (os.path.exists(options.output_star+"/"+Run+"_final.sortedByCoord.out.bam")==True 
+                    and os.path.exists(options.output_star+"/"+Run+"_round4_Aligned.sortedByCoord.out.bam")==True):
+                continue
+            if options.mrna_md[condition][Run]["downloaded_from_NCBI"]==0:
+                continue
             #print(options.mrna_md[condition][Run])
             if options.mrna_md[condition][Run]["Ended"]=="SE":
-                if os.path.exists(options.raw_data_downloaded_from_NCBI+"/"+Run+".fastq")==False and os.path.exists(options.output_fasta_N_removed+"/"+Run+".fasta")==False and os.path.exists(options.raw_data_downloaded_from_NCBI+"/"+Run+".fq")==False:
+                if (os.path.exists(options.raw_data_downloaded_from_NCBI+"/"+Run+".fastq.gz")==False 
+                        and os.path.exists(options.raw_data_downloaded_from_NCBI+"/"+Run+".fastq")==False 
+                        and os.path.exists(options.output_fasta_N_removed+"/"+Run+".fasta")==False 
+                        and os.path.exists(options.raw_data_downloaded_from_NCBI+"/"+Run+".fq")==False):
                     fhw.write(Run+"\n")
                     download_these.append(Run)
                     #options.mrna_md[condition][Run]["location_directory"]=options.raw_data_downloaded_from_NCBI
             elif options.mrna_md[condition][Run]["Ended"]=="PE":
-                if (os.path.exists(options.raw_data_downloaded_from_NCBI+"/"+Run+"_1.fastq")==False or os.path.exists(options.raw_data_downloaded_from_NCBI+"/"+Run+"_2.fastq")==False) \
-                and (os.path.exists(options.output_fasta_N_removed+"/"+Run+"_1.fasta")==False or os.path.exists(options.output_fasta_N_removed+"/"+Run+"_2.fasta")==False) \
-                and (os.path.exists(options.raw_data_downloaded_from_NCBI+"/"+Run+"_1.fq")==False or os.path.exists(options.raw_data_downloaded_from_NCBI+"/"+Run+"_2.fq")==False):
+                if ((os.path.exists(options.raw_data_downloaded_from_NCBI+"/"+Run+"_1.fastq.gz")==False 
+                    or os.path.exists(options.raw_data_downloaded_from_NCBI+"/"+Run+"_2.fastq.gz")==False)
+                    and (os.path.exists(options.raw_data_downloaded_from_NCBI+"/"+Run+"_1.fastq")==False 
+                        or os.path.exists(options.raw_data_downloaded_from_NCBI+"/"+Run+"_2.fastq")==False)
+                    and (os.path.exists(options.output_fasta_N_removed+"/"+Run+"_1.fasta")==False 
+                        or os.path.exists(options.output_fasta_N_removed+"/"+Run+"_2.fasta")==False)
+                    and (os.path.exists(options.raw_data_downloaded_from_NCBI+"/"+Run+"_1.fq")==False 
+                        or os.path.exists(options.raw_data_downloaded_from_NCBI+"/"+Run+"_2.fq")==False)):
                     fhw.write(Run+"\n")
                     download_these.append(Run)
                     #options.mrna_md[condition][Run]["location_directory"]=options.raw_data_downloaded_from_NCBI
